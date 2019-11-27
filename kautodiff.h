@@ -209,6 +209,7 @@ int kad_size_const(int n, kad_node_t *const* v); /* total size of all constants 
 /* graph I/O */
 int kad_save(FILE *fp, int n_node, kad_node_t **node);
 kad_node_t **kad_load(FILE *fp, int *_n_node);
+kad_node_t **kad_sideload(uint8_t **binary, int *_n_node);
 
 /* random number generator */
 void *kad_rng(void);
@@ -241,6 +242,12 @@ static inline int kad_len(const kad_node_t *p) /* calculate the size of p->x */
 	int n = 1, i;
 	for (i = 0; i < p->n_d; ++i) n *= p->d[i];
 	return n;
+}
+
+static void read_binary(void* buffer, uint8_t** binary, int32_t size)
+{
+    memcpy(buffer, *binary, size);
+    *binary += size;   
 }
 
 #endif

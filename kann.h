@@ -226,7 +226,7 @@ const float *kann_apply1(kann_t *a, float *x);
 void kann_save_fp(FILE *fp, kann_t *ann);
 void kann_save(const char *fn, kann_t *ann);
 kann_t *kann_load_fp(FILE *fp);
-kann_t *kann_load(const char *fn);
+kann_t *kann_sideload(uint8_t *binary);
 
 #ifdef __cplusplus
 }

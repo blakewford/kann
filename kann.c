@@ -493,7 +493,6 @@ kann_t *kann_load_fp(FILE *fp)
 	char magic[4];
 	kann_t *ann;
 	int n_var, n_const;
-
 	fread(magic, 1, 4, fp);
 	if (strncmp(magic, KANN_MAGIC, 4) != 0) {
 		fclose(fp);
@@ -520,6 +519,29 @@ kann_t *kann_load(const char *fn)
 	ann = kann_load_fp(fp);
 	fclose(fp);
 	return ann;
+}
+
+kann_t *kann_sideload(uint8_t *binary)
+{
+    char magic[4];
+    kann_t *ann;
+    int n_var, n_const;
+
+    read_binary(magic, &binary, 4);
+    if (strncmp(magic, KANN_MAGIC, 4) != 0) {
+        return 0;
+    }
+    ann = (kann_t*)calloc(1, sizeof(kann_t));
+    ann->v = kad_sideload(&binary, &ann->n);
+    n_var = kad_size_var(ann->n, ann->v);
+    n_const = kad_size_const(ann->n, ann->v);
+    ann->x = (float*)malloc(n_var * sizeof(float));
+    ann->g = (float*)calloc(n_var, sizeof(float));
+    ann->c = (float*)malloc(n_const * sizeof(float));
+    read_binary(ann->x, &binary, sizeof(float)*n_var);
+    read_binary(ann->c, &binary, sizeof(float)*n_const);
+    kad_ext_sync(ann->n, ann->v, ann->x, ann->g, ann->c);
+    return ann;
 }
 
 /**********************************************

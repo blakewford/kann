@@ -641,6 +641,38 @@ static kad_node_t *kad_load1(FILE *fp, kad_node_t **node)
 	return p;
 }
 
+static kad_node_t *kad_sideload1(uint8_t **binary, kad_node_t **node)
+{
+	kad_node_t *p;
+	p = (kad_node_t*)calloc(1, sizeof(kad_node_t));
+	read_binary(&p->ext_label, binary, 4);
+	read_binary(&p->ext_flag, binary, 4);
+	read_binary(&p->flag, binary, 1);
+	read_binary(&p->n_child, binary, 4);
+	if (p->n_child) {
+		int32_t j, k;
+		p->child = (kad_node_t**)calloc(p->n_child, sizeof(kad_node_t*));
+		read_binary(&p->op, binary, 2);
+		for (j = 0; j < p->n_child; ++j) {
+			read_binary(&k, binary, 4);
+			p->child[j] = node? node[k] : 0;
+		}
+		read_binary(&k, binary, 4);
+		if (k >= 0) p->pre = node[k];
+		read_binary(&p->ptr_size, binary, 4);
+		if (p->ptr_size > 0) {
+			p->ptr = malloc(p->ptr_size);
+			read_binary(p->ptr, binary, p->ptr_size);
+		}
+	} else {
+		read_binary(&p->n_d, binary, 1);
+		if (p->n_d) {
+			read_binary(p->d, binary, 4 * p->n_d);
+        }
+	}
+	return p;
+}
+
 int kad_save(FILE *fp, int n_node, kad_node_t **node)
 {
 	int32_t i, k = n_node;
@@ -660,6 +692,25 @@ kad_node_t **kad_load(FILE *fp, int *_n_node)
 	for (i = 0; i < n_node; ++i) {
 		kad_node_t *p;
 		p = node[i] = kad_load1(fp, node);
+		if (p->n_child) {
+			kad_op_list[p->op](p, KAD_ALLOC);
+			kad_op_list[p->op](p, KAD_SYNC_DIM);
+		}
+	}
+	*_n_node = n_node;
+	kad_mark_back(n_node, node);
+	return node;
+}
+
+kad_node_t **kad_sideload(uint8_t **binary, int *_n_node)
+{
+	int32_t i, n_node;
+	kad_node_t **node;
+	read_binary(&n_node, binary, 4);
+	node = (kad_node_t**)malloc(n_node * sizeof(kad_node_t*));
+	for (i = 0; i < n_node; ++i) {
+		kad_node_t *p;
+		p = node[i] = kad_sideload1(binary, node);
 		if (p->n_child) {
 			kad_op_list[p->op](p, KAD_ALLOC);
 			kad_op_list[p->op](p, KAD_SYNC_DIM);
